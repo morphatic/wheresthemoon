@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The moon phase images are looked up dynamically by name
+     (getIdentifier("moon_NNN")), so tell the resource shrinker to keep
+     them all. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/moon_*" />
