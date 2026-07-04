@@ -13,6 +13,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Build
+import android.util.Log
 import android.util.TypedValue
 import android.widget.RemoteViews
 import java.time.Instant
@@ -36,6 +37,7 @@ import kotlin.math.max
 class WTMAppWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        Log.i(TAG, "onUpdate for widgets ${appWidgetIds.contentToString()}")
         scheduleAlarms(context)
         for (appWidgetId in appWidgetIds) {
             updateMoonInfo(context, appWidgetManager, appWidgetId)
@@ -43,6 +45,7 @@ class WTMAppWidget : AppWidgetProvider() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        Log.i(TAG, "onReceive ${intent.action}")
         if (intent.action == ACTION_REFRESH) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, WTMAppWidget::class.java))
@@ -53,10 +56,13 @@ class WTMAppWidget : AppWidgetProvider() {
     }
 
     companion object {
+        private const val TAG = "WTMAppWidget"
         const val ACTION_REFRESH = "com.lapislucera.wheresthemoon.REFRESH"
 
-        private const val LABEL_FONT_SP = 14
-        private const val TEXT_FONT_SP = 12
+        // Sized for readability on modern high-density screens (2026);
+        // the original 14/12 was designed for 2015-era phones.
+        private const val LABEL_FONT_SP = 22
+        private const val TEXT_FONT_SP = 20
 
         private val TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US)
 
