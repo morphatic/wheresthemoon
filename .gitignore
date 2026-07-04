@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+/captures
+
+# Machine-specific SDK location
+local.properties
+
+# Old signed release APKs (kept locally, not in git)
+legacy-apks/
+
+# vocgen build output and scratch databases
+tools/vocgen/target/
+tools/vocgen/*.db
+
+# Claude Code local session settings
+.claude/settings.local.json

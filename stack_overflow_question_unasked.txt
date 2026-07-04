@@ -1,0 +1,108 @@
+Android AlarmManager.setExact() not doesn't appear to launch service and update widget when expected
+
+Tags: android-appwidget alarmmanager android-service
+
+## The Problem
+
+I want to update my Android widget at very specific times, so I've been setting alarms using `AlarmManager.setExact()`, but even though I have verified that the alarms are indeed set using `adb shell dumpsys alarm`, the time for the alarm to fire comes and goes without the widget being updated.
+
+##My Code
+
+Here is the relevant code from my `AppWidgetProvider` class:
+
+<!-- language: lang-java -->
+
+    public class MyAppWidget extends AppWidgetProvider {
+    
+        private static PendingIntent service1 = null, service2 = null;
+        private static VOCDataBase db = null;
+        private static Cursor db_info = null;
+    
+        /**
+         * Function I wrote to do the actual widget updates
+         */
+        public static void updateMyWidget(final Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+    
+            // ...snip...
+            // my code to update the widget
+    
+            // Instruct the widget manager to update the widget
+            appWidgetManager.updateAppWidget(appWidgetId, views);
+        }
+        
+        @Override
+        public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+    
+            // set alarms if necessary
+            if ( null == service1 && null == service2 ) {
+                final AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+                final Calendar     a1 = Calendar.getInstance(), // 1st alarm
+                                   a2 = Calendar.getInstance(); // 2nd alarm
+                final Intent       i1 = new Intent(context,MyService.class).putExtra( "is_i1", true  ),
+                                   i2 = new Intent(context,MyService.class).putExtra( "is_i1", false );
+                final long a1_millis, a2_millis;
+    
+                // get the alarm times from an embedded SQLite db
+                // alarm times are stored as Unix timestamps, i.e. in seconds
+                if ( db == null ) db = new MyDataBase(context);
+                db_info = db.getCurrentAlarmInfo();
+    
+                // time for last aspect and ingress * 1000 to get milliseconds
+                a1.setTime(new Date(db_info.getLong(4) * 1000 ));
+                a2.setTime(new Date(db_info.getLong(1) * 1000 ));
+    
+                // round the times off to the nearest minute
+                a1.set(Calendar.MILLISECOND, 0);
+                a1.set(Calendar.SECOND, 0);
+                a2.set(Calendar.MILLISECOND, 0);
+                a2.set(Calendar.SECOND, 0);
+    
+                service1 = PendingIntent.getService(context, 0, i1, 0);
+                service2 = PendingIntent.getService(context, 1, i2, 0);
+    
+                // set alarms for the last aspect and ingress times
+                a1_millis = SystemClock.elapsedRealtime() + a1.getTime().getTime() - System.currentTimeMillis();
+                a2_millis = SystemClock.elapsedRealtime() + a2.getTime().getTime() - System.currentTimeMillis();
+                am.setExact(AlarmManager.ELAPSED_REALTIME, a1_millis, last_aspect_service);
+                am.setExact(AlarmManager.ELAPSED_REALTIME, a2_millis, ingress_service);
+                Log.w("MyAppWidget", "alarms set");
+            }
+    
+            // There may be multiple widgets active, so update all of them
+            for( int appWidgetId : appWidgetIds) {
+                updateMyWidget(context, appWidgetManager, appWidgetId);
+            }
+            Log.w("MyAppWidget", "onUpdate() fired");
+        }
+    
+        @Override
+        public void onDisabled(Context context) {
+            // Enter relevant functionality for when the last widget is disabled
+            final AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+            am.cancel(service1);
+            am.cancel(service2);
+            db_info.close();
+            db.close();
+        }
+    }
+
+And the relevant code from my `Service` class:
+
+<!-- language: lang-java -->
+
+    public class MyService extends Service {
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId){
+    
+            // update all of the widgets
+            Log.w("MyService", intent + " fired" );
+            ComponentName cn = new ComponentName(this, MyAppWidget.class);
+            AppWidgetManager m = AppWidgetManager.getInstance(this);
+            for ( int awid : m.getAppWidgetIds(cn) ) {
+                MyAppWidget.updateMyWidget(this,m,awid);
+            }
+            MyAppWidget.nullifyService(intent.getBooleanExtra("is_i1", true));
+            return START_NOT_STICKY;
+        }
+    }
