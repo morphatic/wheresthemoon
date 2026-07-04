@@ -1,0 +1,13 @@
+[package]
+name = "vocgen"
+version = "1.0.0"
+edition = "2021"
+description = "Generates voc.db (void-of-course moon data) for the Where's the Moon Android app"
+publish = false
+
+[dependencies]
+swephrs = { git = "https://github.com/morphatic/swephrs.git", tag = "v0.4.0" }
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[profile.release]
+opt-level = 3
