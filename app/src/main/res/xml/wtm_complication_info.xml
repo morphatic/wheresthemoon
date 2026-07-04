@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compact widget for Samsung One UI's lock screen ("complication").
+     The app:* attributes are private Samsung SDK markers (see
+     values/attrs.xml); they are what makes the widget appear in One UI's
+     lock screen widget picker. widgetSize 2 = Samsung's "big" (2x1 cell)
+     complication tile. Also usable as a small home-screen widget. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/wtm_complication"
+    android:minWidth="150dp"
+    android:minHeight="50dp"
+    android:previewImage="@drawable/moon_243"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen|keyguard"
+    app:targetHost="6"
+    app:widgetSize="2"
+    app:widgetStyle="2" />

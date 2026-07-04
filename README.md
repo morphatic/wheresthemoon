@@ -156,6 +156,33 @@ Modern-Android specifics worth remembering (the things that broke between
 - The resource shrinker would strip the dynamically-looked-up
   `moon_NNN.png` images without `res/raw/keep.xml`.
 
+## Lock screen widget (Samsung One UI)
+
+There's a second, compact widget (`WTMComplication`, 2×1) that appears in
+Samsung's lock-screen widget picker. Getting into that picker required
+reverse-engineering One UI's private "complication" scheme (observed on a
+Galaxy S24 Ultra, One UI 8 / Android 16); the standard
+`widgetCategory="keyguard"` is **not** what Samsung filters on:
+
+- The receiver needs `<meta-data android:name="widgetStyle"
+  android:value="complication"/>` in the manifest.
+- The appwidget-provider XML needs Samsung's private attributes, declared
+  locally in `values/attrs.xml` and emitted under `res-auto`:
+  `app:targetHost="6"`, `app:widgetStyle="2"`, and `app:widgetSize="2"`
+  (2 = "big" = a 2×1 tile; 1 = small 1×1 — those are the only lock sizes
+  One UI offers, even to Samsung's own apps).
+- Samsung's framework detects these and rewrites the provider's
+  `widgetCategory` to their private bit 0x2000 at registration.
+- The lock host renders widget imagery as monochrome white, keeping only
+  the alpha channel (like AOD icons) — a photographic moon becomes a
+  featureless white disc. The complication therefore draws the phase as
+  an **alpha silhouette** (`WidgetRender.phaseSilhouetteBitmap`): lit
+  portion opaque, shadow faint.
+
+All of this is undocumented private Samsung behavior and could change in
+any One UI update; the widget degrades to a normal small home-screen
+widget everywhere else.
+
 ## Fonts
 
 - **Kairon Semiserif** (astrological glyphs) — © Kilian Sternad, from the

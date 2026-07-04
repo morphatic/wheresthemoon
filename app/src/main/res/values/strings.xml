@@ -4,4 +4,5 @@
     <string name="moon_is_void">The moon is void.</string>
     <string name="moon_not_void">The moon is not void.</string>
     <string name="voc_data_expired">VOC data expired — update the app.</string>
+    <string name="complication_label">Where is the moon? (compact)</string>
 </resources>

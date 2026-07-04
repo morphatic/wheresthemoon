@@ -7,20 +7,12 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
-import android.util.TypedValue
 import android.widget.RemoteViews
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Home-screen widget showing the current moon phase, sign and degree, and
@@ -44,12 +36,25 @@ class WTMAppWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle,
+    ) {
+        // Re-render on resize so line text is re-fitted to the new width.
+        updateMoonInfo(context, appWidgetManager, appWidgetId)
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         Log.i(TAG, "onReceive ${intent.action}")
         if (intent.action == ACTION_REFRESH) {
+            // Alarm fired at a void boundary: refresh every widget of both
+            // kinds (home widget and lock screen complication).
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, WTMAppWidget::class.java))
             onUpdate(context, manager, ids)
+            WTMComplication.updateAll(context)
         } else {
             super.onReceive(context, intent)
         }
@@ -61,17 +66,18 @@ class WTMAppWidget : AppWidgetProvider() {
 
         // Sized for readability on modern high-density screens (2026);
         // the original 14/12 was designed for 2015-era phones.
-        private const val LABEL_FONT_SP = 22
-        private const val TEXT_FONT_SP = 20
+        private const val LABEL_FONT_DP = 22f
+        private const val TEXT_FONT_DP = 20f
 
-        private val TIME_FORMAT = DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US)
+        // Horizontal space (dp) that is not available to the side columns:
+        // widget padding (8+8), center column moon icon (90) + padding
+        // (10+10), and a little slack for rounding.
+        private const val NON_COLUMN_DP = 130f
+        private const val FALLBACK_WIDGET_WIDTH_DP = 320f
 
         fun updateMoonInfo(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.wtmapp_widget)
-
-            val kairon = Typeface.createFromAsset(context.assets, "fonts/KaironSemiserif.ttf")
-            val alegreya = Typeface.createFromAsset(context.assets, "fonts/AlegreyaSansSC-Regular.ttf")
-            val alegreyaBold = Typeface.createFromAsset(context.assets, "fonts/AlegreyaSansSC-Bold.ttf")
+            val fonts = WidgetRender.Fonts(context)
 
             // Current moon position and phase, computed live.
             val jd = Ephemeris.julianDay(System.currentTimeMillis())
@@ -86,21 +92,24 @@ class WTMAppWidget : AppWidgetProvider() {
             views.setImageViewResource(R.id.moon_icon, moonIconId)
 
             views.setImageViewBitmap(
-                R.id.moon_sign,
-                stringBitmap(context, MoonDisplay.SIGNS[MoonDisplay.signIndex(moonLon)] + " ", kairon, TEXT_FONT_SP),
-            )
-            views.setImageViewBitmap(
-                R.id.moon_degree,
-                stringBitmap(context, MoonDisplay.dms(moonLon % 30.0), alegreya, TEXT_FONT_SP),
+                R.id.moon_position,
+                WidgetRender.lineBitmap(
+                    context,
+                    listOf(
+                        WidgetRender.Segment(fonts.kairon, MoonDisplay.SIGNS[MoonDisplay.signIndex(moonLon)] + " "),
+                        WidgetRender.Segment(fonts.alegreya, MoonDisplay.dms(moonLon % 30.0)),
+                    ),
+                    TEXT_FONT_DP,
+                ),
             )
 
             views.setImageViewBitmap(
                 R.id.last_aspect_label,
-                stringBitmap(context, "Last Aspect", alegreyaBold, LABEL_FONT_SP),
+                WidgetRender.lineBitmap(context, listOf(WidgetRender.Segment(fonts.alegreyaBold, "Last Aspect")), LABEL_FONT_DP),
             )
             views.setImageViewBitmap(
                 R.id.ingress_label,
-                stringBitmap(context, "Ingress", alegreyaBold, LABEL_FONT_SP),
+                WidgetRender.lineBitmap(context, listOf(WidgetRender.Segment(fonts.alegreyaBold, "Ingress")), LABEL_FONT_DP),
             )
 
             val voc = VocDatabase(context).getCurrentVoc()
@@ -108,12 +117,14 @@ class WTMAppWidget : AppWidgetProvider() {
                 // The bundled data has run out; see tools/vocgen in the repo.
                 views.setImageViewBitmap(
                     R.id.void_or_not,
-                    stringBitmap(context, context.getString(R.string.voc_data_expired), alegreya, TEXT_FONT_SP),
+                    WidgetRender.lineBitmap(
+                        context,
+                        listOf(WidgetRender.Segment(fonts.alegreya, context.getString(R.string.voc_data_expired))),
+                        TEXT_FONT_DP,
+                    ),
                 )
-                views.setImageViewBitmap(R.id.ingress_symbol, null)
-                views.setImageViewBitmap(R.id.ingress_time, null)
-                views.setImageViewBitmap(R.id.last_aspect_symbols, null)
-                views.setImageViewBitmap(R.id.last_aspect_time, null)
+                views.setImageViewBitmap(R.id.last_aspect_line, null)
+                views.setImageViewBitmap(R.id.ingress_line, null)
                 appWidgetManager.updateAppWidget(appWidgetId, views)
                 return
             }
@@ -122,27 +133,30 @@ class WTMAppWidget : AppWidgetProvider() {
             val ingressMillis = voc.ingress / 60 * 60000
             val asptimeMillis = voc.asptime / 60 * 60000
 
-            views.setImageViewBitmap(
-                R.id.ingress_symbol,
-                stringBitmap(context, MoonDisplay.SIGNS[voc.sign] + " ", kairon, TEXT_FONT_SP),
+            // Each info line is one bitmap (glyphs + time), and both lines
+            // share one font size, chosen so the wider line fits its
+            // column. Rendering them as separate per-part images let the
+            // host squeeze one line but not the other, which made the
+            // Ingress text look smaller than Last Aspect.
+            val aspectLine = listOf(
+                WidgetRender.Segment(fonts.kairon, MoonDisplay.ASPECTS[voc.aspect] + " " + MoonDisplay.PLANETS[voc.planet] + " "),
+                WidgetRender.Segment(fonts.alegreya, WidgetRender.formatTime(asptimeMillis)),
             )
-            views.setImageViewBitmap(
-                R.id.ingress_time,
-                stringBitmap(context, formatTime(ingressMillis), alegreya, TEXT_FONT_SP),
+            val ingressLine = listOf(
+                WidgetRender.Segment(fonts.kairon, MoonDisplay.SIGNS[voc.sign] + " "),
+                WidgetRender.Segment(fonts.alegreya, WidgetRender.formatTime(ingressMillis)),
             )
-            views.setImageViewBitmap(
-                R.id.last_aspect_symbols,
-                stringBitmap(
-                    context,
-                    MoonDisplay.ASPECTS[voc.aspect] + " " + MoonDisplay.PLANETS[voc.planet] + " ",
-                    kairon,
-                    TEXT_FONT_SP,
-                ),
-            )
-            views.setImageViewBitmap(
-                R.id.last_aspect_time,
-                stringBitmap(context, formatTime(asptimeMillis), alegreya, TEXT_FONT_SP),
-            )
+
+            val widgetWidthDp = appWidgetManager.getAppWidgetOptions(appWidgetId)
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+                .takeIf { it > 0 }?.toFloat() ?: FALLBACK_WIDGET_WIDTH_DP
+            val columnPx = WidgetRender.dpToPx(context, max(60f, (widgetWidthDp - NON_COLUMN_DP) / 2f))
+            val basePx = WidgetRender.dpToPx(context, TEXT_FONT_DP)
+            val widestPx = max(WidgetRender.lineWidth(aspectLine, basePx), WidgetRender.lineWidth(ingressLine, basePx))
+            val fittedFontDp = TEXT_FONT_DP * min(1f, columnPx / widestPx)
+
+            views.setImageViewBitmap(R.id.last_aspect_line, WidgetRender.lineBitmap(context, aspectLine, fittedFontDp))
+            views.setImageViewBitmap(R.id.ingress_line, WidgetRender.lineBitmap(context, ingressLine, fittedFontDp))
 
             val now = System.currentTimeMillis()
             val voidText = if (now in asptimeMillis until ingressMillis) {
@@ -152,14 +166,14 @@ class WTMAppWidget : AppWidgetProvider() {
             }
             views.setImageViewBitmap(
                 R.id.void_or_not,
-                stringBitmap(context, voidText, alegreya, TEXT_FONT_SP),
+                WidgetRender.lineBitmap(context, listOf(WidgetRender.Segment(fonts.alegreya, voidText)), TEXT_FONT_DP),
             )
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
         /**
-         * Set exact alarms to refresh the widget when the void period
+         * Set exact alarms to refresh the widgets when the void period
          * begins (last aspect) and just after it ends (ingress + 1 min).
          */
         fun scheduleAlarms(context: Context) {
@@ -191,33 +205,6 @@ class WTMAppWidget : AppWidgetProvider() {
             } else {
                 alarmManager.setWindow(AlarmManager.RTC_WAKEUP, triggerAtMillis, 10 * 60000, pending)
             }
-        }
-
-        private fun formatTime(unixMillis: Long): String =
-            TIME_FORMAT.format(Instant.ofEpochMilli(unixMillis).atZone(ZoneId.systemDefault()))
-
-        /** Render text to a bitmap so RemoteViews can show the custom fonts. */
-        private fun stringBitmap(context: Context, str: String, typeface: Typeface, fontSizeDp: Int): Bitmap {
-            val fontSize = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                fontSizeDp.toFloat(),
-                context.resources.displayMetrics,
-            ).toInt()
-
-            val paint = Paint().apply {
-                this.typeface = typeface
-                textSize = fontSize.toFloat()
-                isAntiAlias = true
-                isSubpixelText = true
-                style = Paint.Style.FILL
-                color = Color.WHITE
-                textAlign = Paint.Align.CENTER
-            }
-
-            val width = max(1, paint.measureText(str).toInt())
-            val bitmap = Bitmap.createBitmap(width, fontSize, Bitmap.Config.ARGB_8888)
-            Canvas(bitmap).drawText(str, width / 2f, fontSize / 2f + fontSize / 4f, paint)
-            return bitmap
         }
     }
 }

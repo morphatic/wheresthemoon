@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Samsung One UI's lock screen widget picker ("complications") looks for
+     these custom attributes in a widget's provider XML. They are private
+     Samsung SDK attributes, reverse-engineered from Samsung Reminder's
+     widgets; declaring them locally lets us emit them under the res-auto
+     namespace. Values observed: targetHost=6, widgetStyle=2 (complication),
+     widgetSize=1 (small) / 2 (big). Harmless on non-Samsung devices. -->
+<resources>
+    <attr name="targetHost" format="integer" />
+    <attr name="widgetSize" format="integer" />
+    <attr name="widgetStyle" format="integer" />
+</resources>

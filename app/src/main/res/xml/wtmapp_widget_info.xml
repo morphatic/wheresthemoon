@@ -11,3 +11,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen|keyguard" />
+<!-- The Samsung One UI lock screen is served by the separate compact
+     complication widget (wtm_complication_info.xml); this full-size layout
+     would be crushed into a 2x1 tile there. -->
+
