@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.lapislucera.wheresthemoon" >
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Exact alarms flip the "void" line at the right minute.
+         SCHEDULE_EXACT_ALARM covers Android 12/12L; USE_EXACT_ALARM is
+         granted automatically on 13+ (fine for a sideloaded personal app;
+         Play restricts it to alarm/calendar apps). -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
-        <receiver android:name=".WTMAppWidget" >
+        android:label="@string/app_name">
+
+        <receiver
+            android:name=".WTMAppWidget"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -14,22 +25,18 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/wtmapp_widget_info" />
         </receiver>
+
         <service
             android:name=".WTMDream"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
-            android:permission="android.permission.BIND_DREAM_SERVICE" >
+            android:permission="android.permission.BIND_DREAM_SERVICE">
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
-        <service
-            android:name=".WTMService"
-            android:enabled="true"
-            android:exported="true" >
-        </service>
     </application>
+
 </manifest>

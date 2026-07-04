@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Where is the moon?</string>
+    <string name="widget_description">Current moon phase, sign, and void-of-course times</string>
+    <string name="moon_is_void">The moon is void.</string>
+    <string name="moon_not_void">The moon is not void.</string>
+    <string name="voc_data_expired">VOC data expired — update the app.</string>
 </resources>
