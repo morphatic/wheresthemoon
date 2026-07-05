@@ -156,32 +156,42 @@ Modern-Android specifics worth remembering (the things that broke between
 - The resource shrinker would strip the dynamically-looked-up
   `moon_NNN.png` images without `res/raw/keep.xml`.
 
-## Lock screen widget (Samsung One UI)
+## Lock screen widgets (Samsung One UI)
 
-There's a second, compact widget (`WTMComplication`, 2×1) that appears in
-Samsung's lock-screen widget picker. Getting into that picker required
-reverse-engineering One UI's private "complication" scheme (observed on a
-Galaxy S24 Ultra, One UI 8 / Android 16); the standard
-`widgetCategory="keyguard"` is **not** what Samsung filters on:
+Two compact widgets (`WTMAspectComplication`, `WTMIngressComplication`)
+appear in Samsung's lock-screen widget picker, meant to sit side by side
+under the clock: the last aspect and the next ingress. During a void
+period their labels change to **"Void since"** / **"Void until"**, and
+their text turns gold — though the gold is only visible when the same
+tiles are placed on the home screen (see below).
+
+Getting into that picker required reverse-engineering One UI's private
+"complication" scheme (observed on a Galaxy S24 Ultra, One UI 8 /
+Android 16); the standard `widgetCategory="keyguard"` is **not** what
+Samsung filters on:
 
 - The receiver needs `<meta-data android:name="widgetStyle"
   android:value="complication"/>` in the manifest.
 - The appwidget-provider XML needs Samsung's private attributes, declared
   locally in `values/attrs.xml` and emitted under `res-auto`:
-  `app:targetHost="6"`, `app:widgetStyle="2"`, and `app:widgetSize="2"`
-  (2 = "big" = a 2×1 tile; 1 = small 1×1 — those are the only lock sizes
-  One UI offers, even to Samsung's own apps).
+  `app:targetHost="6"`, `app:widgetStyle="2"`, and `app:widgetSize="2"`.
 - Samsung's framework detects these and rewrites the provider's
   `widgetCategory` to their private bit 0x2000 at registration.
-- The lock host renders widget imagery as monochrome white, keeping only
-  the alpha channel (like AOD icons) — a photographic moon becomes a
-  featureless white disc. The complication therefore draws the phase as
-  an **alpha silhouette** (`WidgetRender.phaseSilhouetteBitmap`): lit
-  portion opaque, shadow faint.
+- The lock host grants each tile **~123×54 dp** (two fit side by side;
+  that's the entire widget area) and reports it only via
+  `OPTION_APPWIDGET_SIZES`, not the MIN_WIDTH/HEIGHT ints launchers set.
+  The tiles read it and scale their text to fill the space.
+- The lock host **strips all color**: bitmaps are used as alpha masks
+  and re-tinted white (verified by pixel-sampling a screenshot after
+  rendering amber text — it arrived as RGB 243,243,243). Hence the label
+  swap as the void indicator on the lock screen, and why the
+  photographic moon renders as a white disc there
+  (`WidgetRender.phaseSilhouetteBitmap` draws a phase shape that
+  survives alpha-only rendering, kept for future use).
 
 All of this is undocumented private Samsung behavior and could change in
-any One UI update; the widget degrades to a normal small home-screen
-widget everywhere else.
+any One UI update; the tiles degrade to normal small home-screen widgets
+everywhere else (with the gold visible).
 
 ## Fonts
 

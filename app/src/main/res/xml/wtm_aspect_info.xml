@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lock-screen tile: the last aspect before the next ingress.
+     See wtm_complication_info.xml for the Samsung attribute story. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:description="@string/aspect_tile_description"
+    android:initialLayout="@layout/wtm_complication_text"
+    android:minWidth="150dp"
+    android:minHeight="50dp"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen|keyguard"
+    app:targetHost="6"
+    app:widgetSize="2"
+    app:widgetStyle="2" />

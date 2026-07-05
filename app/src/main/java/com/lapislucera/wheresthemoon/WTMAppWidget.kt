@@ -54,7 +54,7 @@ class WTMAppWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, WTMAppWidget::class.java))
             onUpdate(context, manager, ids)
-            WTMComplication.updateAll(context)
+            ComplicationRenderer.updateAll(context)
         } else {
             super.onReceive(context, intent)
         }
@@ -158,15 +158,20 @@ class WTMAppWidget : AppWidgetProvider() {
             views.setImageViewBitmap(R.id.last_aspect_line, WidgetRender.lineBitmap(context, aspectLine, fittedFontDp))
             views.setImageViewBitmap(R.id.ingress_line, WidgetRender.lineBitmap(context, ingressLine, fittedFontDp))
 
-            val now = System.currentTimeMillis()
-            val voidText = if (now in asptimeMillis until ingressMillis) {
+            val isVoid = ComplicationRenderer.isVoid(voc)
+            val voidText = if (isVoid) {
                 context.getString(R.string.moon_is_void)
             } else {
                 context.getString(R.string.moon_not_void)
             }
             views.setImageViewBitmap(
                 R.id.void_or_not,
-                WidgetRender.lineBitmap(context, listOf(WidgetRender.Segment(fonts.alegreya, voidText)), TEXT_FONT_DP),
+                WidgetRender.lineBitmap(
+                    context,
+                    listOf(WidgetRender.Segment(fonts.alegreya, voidText)),
+                    TEXT_FONT_DP,
+                    ComplicationRenderer.statusColor(voc),
+                ),
             )
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

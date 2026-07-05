@@ -26,18 +26,35 @@
                 android:resource="@xml/wtmapp_widget_info" />
         </receiver>
 
+        <!-- The two lock-screen tiles. Samsung One UI grants lock widgets
+             ~123x54dp, two side by side under the clock; the
+             widgetStyle=complication meta-data is Samsung's marker for
+             lock-screen widgets, ignored elsewhere. -->
         <receiver
-            android:name=".WTMComplication"
+            android:name=".WTMAspectComplication"
             android:exported="false"
-            android:label="@string/complication_label">
+            android:label="@string/aspect_tile_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/wtm_complication_info" />
-            <!-- Samsung One UI marker for lock-screen ("complication")
-                 widgets; ignored elsewhere. -->
+                android:resource="@xml/wtm_aspect_info" />
+            <meta-data
+                android:name="widgetStyle"
+                android:value="complication" />
+        </receiver>
+
+        <receiver
+            android:name=".WTMIngressComplication"
+            android:exported="false"
+            android:label="@string/ingress_tile_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/wtm_ingress_info" />
             <meta-data
                 android:name="widgetStyle"
                 android:value="complication" />

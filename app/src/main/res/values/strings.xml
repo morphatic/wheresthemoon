@@ -4,5 +4,8 @@
     <string name="moon_is_void">The moon is void.</string>
     <string name="moon_not_void">The moon is not void.</string>
     <string name="voc_data_expired">VOC data expired — update the app.</string>
-    <string name="complication_label">Where is the moon? (compact)</string>
+    <string name="aspect_tile_label">Moon: last aspect</string>
+    <string name="ingress_tile_label">Moon: ingress</string>
+    <string name="aspect_tile_description">The moon\'s last aspect before leaving its sign</string>
+    <string name="ingress_tile_description">When the moon enters its next sign</string>
 </resources>

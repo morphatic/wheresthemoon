@@ -11,8 +11,8 @@ android {
         applicationId = "com.lapislucera.wheresthemoon"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "2.3.1"
+        versionCode = 18
+        versionName = "2.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

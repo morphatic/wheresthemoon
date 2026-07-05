@@ -37,18 +37,18 @@ internal object WidgetRender {
     fun dpToPx(context: Context, dp: Float): Float =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.resources.displayMetrics)
 
-    private fun paintFor(typeface: Typeface, fontSizePx: Float) = Paint().apply {
+    private fun paintFor(typeface: Typeface, fontSizePx: Float, color: Int) = Paint().apply {
         this.typeface = typeface
         textSize = fontSizePx
         isAntiAlias = true
         isSubpixelText = true
         style = Paint.Style.FILL
-        color = Color.WHITE
+        this.color = color
     }
 
     /** Total width in px of a line's segments at the given font size. */
     fun lineWidth(segments: List<Segment>, fontSizePx: Float): Float =
-        segments.sumOf { paintFor(it.typeface, fontSizePx).measureText(it.text).toDouble() }.toFloat()
+        segments.sumOf { paintFor(it.typeface, fontSizePx, Color.WHITE).measureText(it.text).toDouble() }.toFloat()
 
     /**
      * Draw the moon phase as an alpha silhouette: lit portion opaque,
@@ -96,7 +96,7 @@ internal object WidgetRender {
      * Render a line of mixed-typeface text to one bitmap, so the widget
      * host can never scale its parts independently.
      */
-    fun lineBitmap(context: Context, segments: List<Segment>, fontSizeDp: Float): Bitmap {
+    fun lineBitmap(context: Context, segments: List<Segment>, fontSizeDp: Float, color: Int = Color.WHITE): Bitmap {
         val fontSize = dpToPx(context, fontSizeDp)
         val width = max(1, lineWidth(segments, fontSize).toInt() + 1)
         val height = max(1, fontSize.toInt())
@@ -105,7 +105,7 @@ internal object WidgetRender {
         var x = 0f
         val baseline = fontSize * 0.75f
         for (segment in segments) {
-            val paint = paintFor(segment.typeface, fontSize)
+            val paint = paintFor(segment.typeface, fontSize, color)
             canvas.drawText(segment.text, x, baseline, paint)
             x += paint.measureText(segment.text)
         }
